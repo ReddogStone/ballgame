@@ -1,0 +1,9 @@
+{
+	"name": "Ballgame",
+	"main": "index.html",
+	"window": {
+		"toolbar": true,
+		"width": 1100,
+		"height": 850
+	}
+}
