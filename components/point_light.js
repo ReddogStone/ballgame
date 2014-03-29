@@ -1,8 +1,8 @@
 var Ballgame = (function(module) {
 	'use strict';
 
-	function PointLight(pos, color) {
-		Jabaku.PointLight.call(this, pos, color);
+	function PointLight(color) {
+		Jabaku.PointLight.call(this, undefined, color);
 	}
 	PointLight.type = 'pointLight';
 	PointLight.extends(Jabaku.PointLight, {

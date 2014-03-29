@@ -2,8 +2,8 @@ var Ballgame = (function(module) {
 	'use strict';
 
 	function Material(color, luminosity, diffuse, specular) {
-		this.color = color;
-		this.luminosity = luminosity;
+		this.color = color ? Color.clone(color) : Color.white;
+		this.luminosity = luminosity || 0.0;
 		this.diffuse = diffuse || 0.0;
 		this.specular = specular || 0.0;
 	}
