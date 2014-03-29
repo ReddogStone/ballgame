@@ -4,9 +4,11 @@ var Ballgame = (function(module) {
 	function collideAxis(pos, scale, vel, axis, min, max) {
 		var p = pos[axis];
 		var s = scale[axis];
-		if ( ((p - s) < min) || ((p + s) > max) ) {
+		var v = vel.value[axis];
+
+		if ( (((p - s) < min) && (v < 0)) || (((p + s) > max) && (v > 0)) ) {
 			vel.value[axis] = -vel.value[axis];
-		}		
+		}
 	}
 
 	function CollisionSystem(entitySystem, width, height, depth) {
