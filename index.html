@@ -49,12 +49,14 @@
 	<script src="components/material.js" type="text/javascript"></script>
 	<script src="components/body.js" type="text/javascript"></script>
 	<script src="components/point_light.js" type="text/javascript"></script>
+	<script src="components/velocity.js" type="text/javascript"></script>
 
 	<script src="systems/text_system.js" type="text/javascript"></script>
 	<script src="systems/transform_system.js" type="text/javascript"></script>
 	<script src="systems/body_system.js" type="text/javascript"></script>
 	<script src="systems/camera_system.js" type="text/javascript"></script>
 	<script src="systems/point_light_system.js" type="text/javascript"></script>
+	<script src="systems/velocity_system.js" type="text/javascript"></script>
 </head>
 <body>
 <canvas id="canvas" width="1024" height="768"></canvas>
@@ -77,6 +79,7 @@
 	var g_cameraSystem;
 	var g_transformSystem;
 	var g_lightSystem;
+	var g_velocitySystem;
 
 	var g_lightSettings;
 	var g_viewport;
@@ -111,6 +114,7 @@
 		// Update
 		//===========================================
 		FrameProfiler.start('UpdateAll');
+		g_velocitySystem.update(delta);
 		g_transformSystem.update();
 		g_cameraSystem.update();
 		g_lightSystem.update();
@@ -259,6 +263,29 @@
 		Engine3D.createTextureFromFile('empty_texture', 'jabaku/data/empty_texture.png');
 	}
 
+	function createDebugScene() {
+		g_debugSystem = new Jabaku.EntitySystem();
+		g_debugTransSystem = new Ballgame.TransformSystem(g_debugSystem);
+		g_debugTextSystem = new Ballgame.TextSystem(g_debugSystem);
+
+		g_fpsLabel = g_debugSystem.newEntity('FPS Label');
+		g_fpsLabel.add(new Ballgame.ScreenText(Engine3D, '', new Jabaku.Font('Georgia', 14), Color.white));
+		g_fpsLabel.add(new Ballgame.Transform(new Vecmath.Vector3(10, 727, 0)));
+
+		for (var i = 0; i < PROFILER_LINES; ++i) {
+			profileLineLabel = g_debugSystem.newEntity('Profile Line ' + i);
+			profileLineLabel.add(
+				new Ballgame.ScreenText(Engine3D, '', new Jabaku.Font('Lucida Console', 10), Color.white));
+			profileLineLabel.add(new Ballgame.Transform(new Vecmath.Vector3(10, i * 12, 0)));
+			profileLineLabel.add(new Ballgame.Invisibility());
+			g_profileLines.push(profileLineLabel);
+		}
+				
+		g_mousePosLabel = g_debugSystem.newEntity('Mouse Pos Label');
+		g_mousePosLabel.add(new Ballgame.ScreenText(Engine3D, '', new Jabaku.Font('Georgia', 14), Color.white));
+		g_mousePosLabel.add(new Ballgame.Transform(new Vecmath.Vector3(800, 727, 0)));		
+	}	
+
 	function createCamera(tubeLength) {
 		g_camera = g_mainEntitySystem.newEntity('Main Camera');
 		var cam = new Ballgame.Camera();
@@ -270,11 +297,13 @@
 	}
 
 	function createBall(tubeLength) {
+		const SCALE = 0.07;
 		g_ball = g_mainEntitySystem.newEntity('Ball');
 		g_ball.add(new Ballgame.Body(Engine3D, Jabaku.createSphereMesh(Engine3D, 5)));
 		g_ball.add(new Ballgame.Transform(
-			new Vecmath.Vector3(0, 0, tubeLength * 0.5), null, new Vecmath.Vector3(0.05, 0.05, 0.05)));
+			new Vecmath.Vector3(0, 0, tubeLength * 0.5), null, new Vecmath.Vector3(SCALE, SCALE, SCALE)));
 		g_ball.add(new Ballgame.Material(Color.white, 1.0));
+		g_ball.add(new Ballgame.Velocity(new Vecmath.Vector3(0.1, 0, -0.1)));
 	}
 
 	function createTube(tubeLength) {
@@ -320,6 +349,7 @@
 		g_cameraSystem = new Ballgame.CameraSystem(g_mainEntitySystem);
 		g_bodySystem = new Ballgame.BodySystem(g_mainEntitySystem);
 		g_lightSystem = new Ballgame.PointLightSystem(g_mainEntitySystem);
+		g_velocitySystem = new Ballgame.VelocitySystem(g_mainEntitySystem);
 
 		g_renderer = new Jabaku.SimpleForwardRenderer(Engine3D, new Color(0.2, 0.2, 0.2));
 
@@ -328,31 +358,8 @@
 
 		const TUBE_LENGTH = 5;
 		createCamera(TUBE_LENGTH);
-		createTube(TUBE_LENGTH);
 		createBall(TUBE_LENGTH);
-	}
-
-	function createDebugScene() {
-		g_debugSystem = new Jabaku.EntitySystem();
-		g_debugTransSystem = new Ballgame.TransformSystem(g_debugSystem);
-		g_debugTextSystem = new Ballgame.TextSystem(g_debugSystem);
-
-		g_fpsLabel = g_debugSystem.newEntity('FPS Label');
-		g_fpsLabel.add(new Ballgame.ScreenText(Engine3D, '', new Jabaku.Font('Georgia', 14), Color.white));
-		g_fpsLabel.add(new Ballgame.Transform(new Vecmath.Vector3(10, 727, 0)));
-
-		for (var i = 0; i < PROFILER_LINES; ++i) {
-			profileLineLabel = g_debugSystem.newEntity('Profile Line ' + i);
-			profileLineLabel.add(
-				new Ballgame.ScreenText(Engine3D, '', new Jabaku.Font('Lucida Console', 10), Color.white));
-			profileLineLabel.add(new Ballgame.Transform(new Vecmath.Vector3(10, i * 12, 0)));
-			profileLineLabel.add(new Ballgame.Invisibility());
-			g_profileLines.push(profileLineLabel);
-		}
-				
-		g_mousePosLabel = g_debugSystem.newEntity('Mouse Pos Label');
-		g_mousePosLabel.add(new Ballgame.ScreenText(Engine3D, '', new Jabaku.Font('Georgia', 14), Color.white));
-		g_mousePosLabel.add(new Ballgame.Transform(new Vecmath.Vector3(800, 727, 0)));		
+		createTube(TUBE_LENGTH);
 	}
 
 	function initEvents() {
