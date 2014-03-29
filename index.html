@@ -50,6 +50,7 @@
 	<script src="components/body.js" type="text/javascript"></script>
 	<script src="components/point_light.js" type="text/javascript"></script>
 	<script src="components/velocity.js" type="text/javascript"></script>
+	<script src="components/collider.js" type="text/javascript"></script>
 
 	<script src="systems/text_system.js" type="text/javascript"></script>
 	<script src="systems/transform_system.js" type="text/javascript"></script>
@@ -57,6 +58,7 @@
 	<script src="systems/camera_system.js" type="text/javascript"></script>
 	<script src="systems/point_light_system.js" type="text/javascript"></script>
 	<script src="systems/velocity_system.js" type="text/javascript"></script>
+	<script src="systems/collision_system.js" type="text/javascript"></script>
 </head>
 <body>
 <canvas id="canvas" width="1024" height="768"></canvas>
@@ -80,6 +82,7 @@
 	var g_transformSystem;
 	var g_lightSystem;
 	var g_velocitySystem;
+	var g_collisionSystem;
 
 	var g_lightSettings;
 	var g_viewport;
@@ -114,6 +117,7 @@
 		// Update
 		//===========================================
 		FrameProfiler.start('UpdateAll');
+		g_collisionSystem.update();
 		g_velocitySystem.update(delta);
 		g_transformSystem.update();
 		g_cameraSystem.update();
@@ -301,29 +305,30 @@
 		g_ball = g_mainEntitySystem.newEntity('Ball');
 		g_ball.add(new Ballgame.Body(Engine3D, Jabaku.createSphereMesh(Engine3D, 5)));
 		g_ball.add(new Ballgame.Transform(
-			new Vecmath.Vector3(0, 0, tubeLength * 0.5), null, new Vecmath.Vector3(SCALE, SCALE, SCALE)));
+			new Vecmath.Vector3(0, 0, tubeLength * 0.5 - SCALE), null, 
+			new Vecmath.Vector3(SCALE, SCALE, SCALE)));
 		g_ball.add(new Ballgame.Material(Color.white, 1.0));
-		g_ball.add(new Ballgame.Velocity(new Vecmath.Vector3(0.1, 0, -0.1)));
+		g_ball.add(new Ballgame.Velocity(new Vecmath.Vector3(1, 1, -1)));
+		g_ball.add(new Ballgame.Collider());
 	}
 
-	function createTube(tubeLength) {
+	function createTube(width, height, depth) {
 		var color = new Color(0.3, 0.3, 1.0, 1.0);
-		var height = 1.5;
 
 		var leftWall = g_mainEntitySystem.newEntity('Left Wall');
 		leftWall.add(new Ballgame.Body(Engine3D, Jabaku.createQuadMesh(Engine3D), BlendMode.PREMUL_ALPHA));
 		leftWall.add(new Ballgame.Transform(
-			new Vecmath.Vector3(-1, 0, 0), 
+			new Vecmath.Vector3(-width * 0.5, 0, 0), 
 			new Vecmath.Quaternion().setAxisAngle(new Vecmath.Vector3(0, 1, 0), 0.5 * Math.PI),
-			new Vecmath.Vector3(tubeLength, height, 1)));
+			new Vecmath.Vector3(depth, height, 1)));
 		leftWall.add(new Ballgame.Material(color, 1.0));
 
 		var rightWall = g_mainEntitySystem.newEntity('Left Wall');
 		rightWall.add(new Ballgame.Body(Engine3D, Jabaku.createQuadMesh(Engine3D), BlendMode.PREMUL_ALPHA));
 		rightWall.add(new Ballgame.Transform(
-			new Vecmath.Vector3(1, 0, 0), 
+			new Vecmath.Vector3(width * 0.5, 0, 0), 
 			new Vecmath.Quaternion().setAxisAngle(new Vecmath.Vector3(0, 1, 0), -0.5 * Math.PI),
-			new Vecmath.Vector3(tubeLength, height, 1)));
+			new Vecmath.Vector3(depth, height, 1)));
 		rightWall.add(new Ballgame.Material(color, 1.0));
 
 		var topWall = g_mainEntitySystem.newEntity('Left Wall');
@@ -331,7 +336,7 @@
 		topWall.add(new Ballgame.Transform(
 			new Vecmath.Vector3(0, height * 0.5, 0),
 			new Vecmath.Quaternion().setAxisAngle(new Vecmath.Vector3(1, 0, 0), -0.5 * Math.PI),
-			new Vecmath.Vector3(2, tubeLength, 1)));
+			new Vecmath.Vector3(2, depth, 1)));
 		topWall.add(new Ballgame.Material(color, 1.0));
 
 		var bottomWall = g_mainEntitySystem.newEntity('Left Wall');
@@ -339,27 +344,32 @@
 		bottomWall.add(new Ballgame.Transform(
 			new Vecmath.Vector3(0, -height * 0.5, 0),
 			new Vecmath.Quaternion().setAxisAngle(new Vecmath.Vector3(1, 0, 0), -0.5 * Math.PI),
-			new Vecmath.Vector3(2, tubeLength, 1)));
+			new Vecmath.Vector3(2, depth, 1)));
 		bottomWall.add(new Ballgame.Material(color, 1.0));
 	}
 
 	function createMainScene() {
+		const TUBE_WIDTH = 2.0;
+		const TUBE_HEIGHT = 1.5;
+		const TUBE_DEPTH = 5;
+
 		g_mainEntitySystem = new Jabaku.EntitySystem();
 		g_transformSystem = new Ballgame.TransformSystem(g_mainEntitySystem);
 		g_cameraSystem = new Ballgame.CameraSystem(g_mainEntitySystem);
 		g_bodySystem = new Ballgame.BodySystem(g_mainEntitySystem);
 		g_lightSystem = new Ballgame.PointLightSystem(g_mainEntitySystem);
 		g_velocitySystem = new Ballgame.VelocitySystem(g_mainEntitySystem);
+		g_collisionSystem = new Ballgame.CollisionSystem(g_mainEntitySystem, 
+			TUBE_WIDTH, TUBE_HEIGHT, TUBE_DEPTH);
 
 		g_renderer = new Jabaku.SimpleForwardRenderer(Engine3D, new Color(0.2, 0.2, 0.2));
 
 		g_lightSettings = new Jabaku.ForwardLightSettings();
 		g_viewport = new Jabaku.Viewport();
 
-		const TUBE_LENGTH = 5;
-		createCamera(TUBE_LENGTH);
-		createBall(TUBE_LENGTH);
-		createTube(TUBE_LENGTH);
+		createCamera(TUBE_DEPTH);
+		createBall(TUBE_DEPTH);
+		createTube(TUBE_WIDTH, TUBE_HEIGHT, TUBE_DEPTH);
 	}
 
 	function initEvents() {
